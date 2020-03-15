@@ -8,4 +8,9 @@ namespace :blazer do
   task send_failing_checks: :environment do
     Blazer.send_failing_checks
   end
+
+  desc "run reports"
+  task :run_reports, [:schedule] => :environment do |_, args|
+    Blazer.run_reports(schedule: args[:schedule] || ENV["SCHEDULE"])
+  end
 end

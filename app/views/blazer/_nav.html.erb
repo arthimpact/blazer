@@ -5,11 +5,17 @@
     <span class="sr-only">Toggle Dropdown</span>
   </button>
   <ul class="dropdown-menu">
+    <% if @query %>
+      <% if authorized?("Check", "manage") %>
+        <li><%= link_to "New Check", new_check_path(query_id: @query.id) %></li>
+      <% end %>
+      <% if authorized?("Report", "manage") %>
+        <li><%= link_to "New Report", new_report_path(query_id: @query.id) %></li>
+      <% end %>
+      <li role="separator" class="divider"></li>
+    <% end %>
+    <li><%= link_to "Queries", root_path %></li>
     <li><%= link_to "Checks", checks_path %></li>
-    <li role="separator" class="divider"></li>
-    <li><%= link_to "New Query", new_query_path %></li>
-    <li><%= link_to "New Dashboard", new_dashboard_path %></li>
-    <% check_params = @query ? {query_id: @query.id} : {} %>
-    <li><%= link_to "New Check", new_check_path(check_params) %></li>
+    <li><%= link_to "Reports", reports_path %></li>
   </ul>
 </div>

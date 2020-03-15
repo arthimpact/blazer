@@ -42,5 +42,16 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version
       t.timestamp :last_run_at
       t.timestamps null: false
     end
+
+    create_table :blazer_reports do |t|
+      t.references :creator
+      t.references :query
+      t.string :schedule
+      t.string :emails
+      t.string :subject
+      t.string :body
+      t.timestamp :last_run_at
+      t.timestamps null: false
+    end
   end
 end

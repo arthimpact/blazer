@@ -25,7 +25,9 @@ module Blazer
       Blazer.from_email = Blazer.settings["from_email"] if Blazer.settings["from_email"]
       Blazer.before_action = Blazer.settings["before_action_method"] if Blazer.settings["before_action_method"]
       Blazer.check_schedules = Blazer.settings["check_schedules"] if Blazer.settings.key?("check_schedules")
+      Blazer.report_schedules = Blazer.settings["report_schedules"] if Blazer.settings.key?("report_schedules")
       Blazer.cache ||= Rails.cache
+      Blazer.crud_auth_method = Blazer.settings["crud_auth_method"] if Blazer.settings.key?("crud_auth_method")
 
       Blazer.anomaly_checks = Blazer.settings["anomaly_checks"] || false
       Blazer.forecasting = Blazer.settings["forecasting"] || false

@@ -12,6 +12,10 @@ Blazer::Engine.routes.draw do
     get :run, on: :member
   end
 
+  resources :reports, except: [:show] do
+    get :run, on: :member
+  end
+
   resources :dashboards, except: [:index] do
     post :refresh, on: :member
   end

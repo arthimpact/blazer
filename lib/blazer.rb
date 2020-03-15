@@ -40,11 +40,13 @@ module Blazer
     attr_writer :user_class
     attr_writer :user_method
     attr_accessor :before_action
+    attr_accessor :crud_auth_method
     attr_accessor :from_email
     attr_accessor :cache
     attr_accessor :transform_statement
     attr_accessor :transform_variable
     attr_accessor :check_schedules
+    attr_accessor :report_schedules
     attr_accessor :anomaly_checks
     attr_accessor :forecasting
     attr_accessor :async
@@ -58,6 +60,7 @@ module Blazer
   self.audit = true
   self.user_name = :name
   self.check_schedules = ["5 minutes", "1 hour", "1 day"]
+  self.report_schedules = ["5 minutes", "1 hour", "1 day"]
   self.anomaly_checks = false
   self.forecasting = false
   self.async = false
@@ -131,6 +134,12 @@ module Blazer
     end
   end
 
+  def self.run_reports(schedule: nil)
+    reports = Blazer::Report.includes(:query)
+    reports = reports.where(schedule: schedule) if schedule
+    reports.find_each {|report| Safely.safely { run_report(report) } }
+  end
+
   def self.run_check(check)
     tries = 1
 
@@ -169,6 +178,49 @@ module Blazer
       instrument[:statement] = statement
       instrument[:data_source] = data_source
       instrument[:state] = check.state
+      instrument[:rows] = result.rows.try(:size)
+      instrument[:error] = result.error
+      instrument[:tries] = tries
+    end
+  end
+
+  def self.run_report(report)
+    tries = 1
+
+    ActiveSupport::Notifications.instrument("run_report.blazer", report_id: report.id, query_id: report.query.id) do |instrument|
+      # try 3 times on timeout errors
+      data_source = data_sources[report.query.data_source]
+      statement = report.query.statement
+      Blazer.transform_statement.call(data_source, statement) if Blazer.transform_statement
+
+      while tries <= 3
+        result = data_source.run_statement(statement, refresh_cache: true, report: report, query: report.query)
+        if result.timed_out?
+          Rails.logger.info "[blazer timeout] query=#{report.query.name}"
+          tries += 1
+          sleep(10)
+        elsif result.error.to_s.start_with?("PG::ConnectionBad")
+          data_source.reconnect
+          Rails.logger.info "[blazer reconnect] query=#{report.query.name}"
+          tries += 1
+          sleep(10)
+        else
+          break
+        end
+      end
+
+      begin
+        report.reload # in case state has changed since job started
+        report.update_state(result)
+      rescue ActiveRecord::RecordNotFound
+        # report deleted
+      end
+
+      # TODO use proper logfmt
+      Rails.logger.info "[blazer report] query=#{report.query.name} rows=#{result.rows.try(:size)} error=#{result.error}"
+
+      instrument[:statement] = statement
+      instrument[:data_source] = data_source
       instrument[:rows] = result.rows.try(:size)
       instrument[:error] = result.error
       instrument[:tries] = tries

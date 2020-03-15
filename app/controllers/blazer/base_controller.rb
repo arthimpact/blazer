@@ -2,6 +2,7 @@ module Blazer
   class BaseController < ApplicationController
     # skip filters
     filters = _process_action_callbacks.map(&:filter) - [:activate_authlogic]
+    before_action :check_authorization, only: %i[new create edit update destroy]
     skip_before_action(*filters, raise: false)
     skip_after_action(*filters, raise: false)
     skip_around_action(*filters, raise: false)
@@ -29,6 +30,17 @@ module Blazer
     layout "blazer/application"
 
     private
+
+      def check_authorization
+        return true if authorized?(params["controller"].classify.demodulize, params["action"])
+        redirect_to root_url, notice: "Unauthorized"
+      end
+
+      def authorized?(resource_name, action)
+        return true unless Blazer.respond_to?(:crud_auth_method, true)
+        blazer_user.send(Blazer.crud_auth_method, resource_name, params["action"])
+      end
+      helper_method :authorized?
 
       def process_vars(statement, data_source)
         (@bind_vars ||= []).concat(Blazer.extract_vars(statement)).uniq!

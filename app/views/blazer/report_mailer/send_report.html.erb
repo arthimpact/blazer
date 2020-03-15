@@ -1,0 +1,12 @@
+<html>
+  <head>
+  </head>
+  <body style="font-family: 'Helvetica Neue', Arial, Helvetica; font-size: 14px; color: #333;">
+    <pre><%= @report.body %></pre>
+    <br/>
+    <pre><%= link_to "View Online", query_url(@report.query_id) %></pre>
+    <% if @error %>
+      <p><%= @error %></p>
+    <% end %>
+  </body>
+</html>

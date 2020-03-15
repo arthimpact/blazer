@@ -1,0 +1,53 @@
+<%= form_for @report, html: {class: "small-form"} do |f| %>
+  <% if @report.errors.any? %>
+    <div class="alert alert-danger"><%= @report.errors.full_messages.first %></div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :query_id, "Query" %>
+    <div class="hide">
+      <%= f.select :query_id, [], {include_blank: true} %>
+    </div>
+    <script>
+      <%= blazer_js_var "queries", Blazer::Query.named.order(:name).select("id, name").map { |q| {text: q.name, value: q.id} } %>
+      <%= blazer_js_var "items", [@report.query_id].compact %>
+
+      $("#report_query_id").selectize({options: queries, items: items, highlight: false, maxOptions: 100}).parents(".hide").removeClass("hide");
+    </script>
+  </div>
+
+  <% if @report.respond_to?(:schedule) && Blazer.report_schedules %>
+    <div class="form-group">
+      <%= f.label :schedule, "Run every" %>
+      <div class="hide">
+        <%= f.select :schedule, Blazer.report_schedules.map { |v| [v, v] } %>
+      </div>
+      <script>
+        $("#report_schedule").selectize({}).parent().removeClass("hide");
+      </script>
+    </div>
+  <% end %>
+
+  <div class="form-group">
+    <%= f.label :emails %>
+    <%= f.text_field :emails, placeholder: "Optional, comma separated", class: "form-control" %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :subject %>
+    <%= f.text_field :subject, placeholder: "Optional", class: "form-control" %>
+  </div>
+
+  <div class="form-group">
+    <%= f.label :body %>
+    <%= f.text_area :body, placeholder: "Optional", class: "form-control" %>
+  </div>
+
+  <p>
+    <%= f.submit "Save", class: "btn btn-success" %>
+    <%= link_to "Back", :back, class: "btn btn-link" %>
+    <% if @report.persisted? %>
+      <%= link_to "Delete", report_path(@report), method: :delete, "data-confirm" => "Are you sure?", class: "btn btn-danger" %>
+    <% end %>
+  </p>
+<% end %>

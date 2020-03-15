@@ -66,6 +66,33 @@ module Blazer
     end
 
     private
+      def set_dashboards(limit = nil)
+        @dashboards = Blazer::Dashboard.named.select(:id, :name, :creator_id, :statement)
+        @dashboards = @dashboards.includes(:creator) if Blazer.user_class
+
+        if blazer_user && params[:filter] == "mine"
+          @dashboards = @dashboards.where(creator_id: blazer_user.id).reorder(updated_at: :desc)
+        elsif blazer_user && params[:filter] == "viewed" && Blazer.audit
+          @dashboards = dashboards_by_ids(Blazer::Audit.where(user_id: blazer_user.id).order(created_at: :desc).limit(500).pluck(:query_id).uniq)
+        else
+          @dashboards = @dashboards.limit(limit) if limit
+          @dashboards = @dashboards.order(:name)
+        end
+        @dashboards = @dashboards.to_a
+
+        @more = limit && @dashboards.size >= limit
+
+        @dashboards = @dashboards.select { |q| !q.name.to_s.start_with?("#") || q.try(:creator).try(:id) == blazer_user.try(:id) }
+
+        @dashboards =
+          @dashboards.map do |q|
+            {
+              id: q.id,
+              name: q.name,
+              creator: blazer_user && q.try(:creator) == blazer_user ? "You" : q.try(:creator).try(Blazer.user_name)
+            }
+          end
+      end
 
       def dashboard_params
         params.require(:dashboard).permit(:name)
