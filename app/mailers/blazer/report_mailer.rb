@@ -19,7 +19,7 @@ module Blazer
       end
       attachments[attachment_name] = csv_file
       subject = report.subject.presence || "Report #{report.query.name}"
-      mail to: report.emails, reply_to: report.emails, subject: subject.humanize
+      mail to: report.emails, reply_to: report.emails, subject: subject
     end
   end
 end
